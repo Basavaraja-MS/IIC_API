@@ -81,12 +81,14 @@
 * </pre>
 *
 *****************************************************************************/
-#ifndef XIIC_L_H		/* prevent circular inclusions */
-#define XIIC_L_H		/* by using protection macros */
+#ifndef __XIIC_L_H		/* prevent circular inclusions */
+#define __XIIC_L_H		/* by using protection macros */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+//#include <stdint.h>
 
 /***************************** Include Files ********************************/
 
@@ -267,11 +269,14 @@ extern "C" {
 * @note		None.
 *
 ******************************************************************************/
+/*
 uint32_t Xil_In32(uint32_t Addr) {
 	return *(volatile uint32_t *)Addr;
 }
+*/
 
-
+#define Xil_In32(addr) \
+   *((volatile unsigned int *)(addr))
 
 /*****************************************************************************/
 /**
@@ -287,11 +292,14 @@ uint32_t Xil_In32(uint32_t Addr) {
 * @note		None.
 *
 ******************************************************************************/
+/*
 void Xil_Out32( uint32_t Addr, uint32_t Value) {
 	uint32_t *LocalAddr = (uint32_t *)Addr;
 	*LocalAddr = Value;
 }
-
+*/
+#define Xil_Out32(Addr, Value) \
+  (*(volatile unsigned int  *)((Addr)) = (Value))
 
 /***************** Macros (Inline Functions) Definitions *********************/
 
@@ -612,19 +620,21 @@ void Xil_Out32( uint32_t Addr, uint32_t Value) {
 }
 
 /************************** Function Prototypes *****************************/
+unsigned XIic_DynSend( uint32_t BaseAddress, uint16_t  Address, uint8_t  *BufferPtr,
+                        uint8_t ByteCount, uint8_t Option);
 
-unsigned XIic_Recv(unsigned int  BaseAddress, unsigned int  Address,
-		   unsigned int  *BufferPtr, unsigned ByteCount, unsigned int  Option);
+unsigned XIic_DynRecv(unsigned int  BaseAddress, unsigned int  Address, unsigned int  *BufferPtr, 
+			unsigned int  ByteCount);
 
-unsigned XIic_Send(unsigned int  BaseAddress, unsigned int  Address,
-		   unsigned int  *BufferPtr, unsigned ByteCount, unsigned int  Option);
+int XIic_DynInit(uint32_t BaseAddress);
 
-unsigned XIic_DynRecv(unsigned int  BaseAddress, unsigned int  Address, unsigned int  *BufferPtr, unsigned int  ByteCount);
 
-unsigned XIic_DynSend(unsigned int  BaseAddress, unsigned int  Address, unsigned int  *BufferPtr,
-		      unsigned int  ByteCount, unsigned int  Option);
+unsigned XIic_Recv(uint32_t BaseAddress, uint8_t Address,
+                        uint8_t *BufferPtr, unsigned ByteCount, uint8_t Option);
 
-int XIic_DynInit(unsigned int  BaseAddress);
+unsigned XIic_Send(uint32_t BaseAddress, uint8_t Address,
+                   uint8_t *BufferPtr, unsigned ByteCount, uint8_t Option);
+
 
 #ifdef __cplusplus
 }

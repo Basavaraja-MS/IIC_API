@@ -1,10 +1,31 @@
-/*
+/*Initialize SI5338 with I2C interface and initialize UPHY TC
+ * Hardware specific code
+ *TODO: 1. Move magic numbers into names 
+ *	2. Avoid Loops and enhance debug support 
+ *
+ * **/
 
 
 
-*/
 
-#include "iic_api.h"
+#include <linux/kernel.h>
+#include <linux/printk.h>
+
+#include <platform/hardware.h>
+#include <platform/lcd.h>
+
+#include <platform/iic_api.h>
+#include <platform/si5338_uphy.h>
+
+#define printf printk
+
+#define csp_out32(Addr, Value) \
+  (*(volatile unsigned int  *)((Addr)) = (Value))
+
+#define csp_read32(addr) \
+   *((volatile unsigned int *)(addr))
+
+
 
 #define IIC_BASE_ADDRESS 	0xFD070000
 #define IIC_SLAVE_ADDRESS 	0x70
@@ -27,31 +48,31 @@ int udelay(unsigned int val){
 void reset_assert_uphy (void)
 {
 	//tc rst =0 apb/tap rst =0 phyreset =0 pipe rst = 0
-	Xil_Out32 ((APB2GPIO_BASE + (0x30<<2)), 0x0);   // TOP_CHIP_RST_B
-	Xil_Out32 ((APB2GPIO_BASE + (0x34<<2)), 0x0);   // UPHY_APB_PRESET_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x0);   // UPHY_TAP_TRST_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x38<<2)), 0x0);   // UPHY_PHY_RESET_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x40<<2)), 0x0);   // UPHY_PIPE_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x30<<2)), 0x0);   // TOP_CHIP_RST_B
+	csp_out32 ((APB2GPIO_BASE + (0x34<<2)), 0x0);   // UPHY_APB_PRESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x0);   // UPHY_TAP_TRST_N
+	csp_out32 ((APB2GPIO_BASE + (0x38<<2)), 0x0);   // UPHY_PHY_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x40<<2)), 0x0);   // UPHY_PIPE_RESET_N
 }
 
 void reset_assert_pcie (void)
 {
-	Xil_Out32 ((APB2GPIO_BASE + (0x55<<2)), 0x0);   // SOFT_PIPE_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x55<<2)), 0x0);   // SOFT_PIPE_RESET_N
 }
 
 void reset_deassert_pcie (void)
 {
-	Xil_Out32 ((APB2GPIO_BASE + (0x55<<2)), 0x1);   // SOFT_PIPE_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x55<<2)), 0x1);   // SOFT_PIPE_RESET_N
 }
 
 void link_training_disable (void)
 {
-	Xil_Out32 ((APB2GPIO_BASE + (0x43<<2)), 0x0);   // LINK_TRAINING_ENABLE
+	csp_out32 ((APB2GPIO_BASE + (0x43<<2)), 0x0);   // LINK_TRAINING_ENABLE
 }
 
 void link_training_enable (void)
 {
-	Xil_Out32 ((APB2GPIO_BASE + (0x43<<2)), 0x1);   // LINK_TRAINING_ENABLE
+	csp_out32 ((APB2GPIO_BASE + (0x43<<2)), 0x1);   // LINK_TRAINING_ENABLE
 }
 
 
@@ -66,82 +87,82 @@ void uphy_bringup(void)
 #endif
 	
 	//tc rst =1 apb/tap rst =1 phyreset =1 pipe rst = 1
-	Xil_Out32 ((APB2GPIO_BASE + (0x30<<2)), 0x1);   // TOP_CHIP_RST_B
-	Xil_Out32 ((APB2GPIO_BASE + (0x34<<2)), 0x1);   // UPHY_APB_PRESET_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x1);   // UPHY_TAP_TRST_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x38<<2)), 0x1);   // UPHY_PHY_RESET_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x40<<2)), 0x1);   // UPHY_PIPE_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x30<<2)), 0x1);   // TOP_CHIP_RST_B
+	csp_out32 ((APB2GPIO_BASE + (0x34<<2)), 0x1);   // UPHY_APB_PRESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x1);   // UPHY_TAP_TRST_N
+	csp_out32 ((APB2GPIO_BASE + (0x38<<2)), 0x1);   // UPHY_PHY_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x40<<2)), 0x1);   // UPHY_PIPE_RESET_N
 	
 	udelay (0x200);
 	
 	//tc rst =0 apb/tap rst =0 phyreset =0 pipe rst = 0
-	Xil_Out32 ((APB2GPIO_BASE + (0x30<<2)), 0x0);   // TOP_CHIP_RST_B
-	Xil_Out32 ((APB2GPIO_BASE + (0x34<<2)), 0x0);   // UPHY_APB_PRESET_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x0);   // UPHY_TAP_TRST_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x38<<2)), 0x0);   // UPHY_PHY_RESET_N
-	Xil_Out32 ((APB2GPIO_BASE + (0x40<<2)), 0x0);   // UPHY_PIPE_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x30<<2)), 0x0);   // TOP_CHIP_RST_B
+	csp_out32 ((APB2GPIO_BASE + (0x34<<2)), 0x0);   // UPHY_APB_PRESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x0);   // UPHY_TAP_TRST_N
+	csp_out32 ((APB2GPIO_BASE + (0x38<<2)), 0x0);   // UPHY_PHY_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x40<<2)), 0x0);   // UPHY_PIPE_RESET_N
 	udelay (0x200);
 	
-	Xil_Out32 ((APB2GPIO_BASE + (0x31<<2)), 0x0);   // TOP_CHIPMODE for PCIe
+	csp_out32 ((APB2GPIO_BASE + (0x31<<2)), 0x0);   // TOP_CHIPMODE for PCIe
 	udelay (0x500);
-	Xil_Out32 ((APB2GPIO_BASE + (0x32<<2)), 0x2);   // TOP_SEL_TAP 1x for TC
+	csp_out32 ((APB2GPIO_BASE + (0x32<<2)), 0x2);   // TOP_SEL_TAP 1x for TC
 	udelay (0x500);
 	
 	//pipe rst = 1
-	Xil_Out32 ((APB2GPIO_BASE + (0x40<<2)), 0x1);   // UPHY_PIPE_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x40<<2)), 0x1);   // UPHY_PIPE_RESET_N
 	udelay (0x500);
 	
-	Xil_Out32 ((APB2GPIO_BASE + (0x3B<<2)), 0x1);   // 32bit_sel
-	Xil_Out32 ((APB2GPIO_BASE + (0x1C<<2)), 0x1);   // PIPE_L01_TX_ELEC_IDLE
-	Xil_Out32 ((APB2GPIO_BASE + (0x29<<2)), 0x1);   // PIPE_L00_TX_ELEC_IDLE
-	Xil_Out32 ((APB2GPIO_BASE + (0x2F<<2)), 0x2);   // Powerdown
-	Xil_Out32 ((APB2GPIO_BASE + (0x3A<<2)), 0x1);   // UPHY_PHY_TX_CMN_MODE_EN
-	Xil_Out32 ((APB2GPIO_BASE + (0x39<<2)), 0x1);   // UPHY_PHY_RX_ELEC_IDLE_DET_EN
+	csp_out32 ((APB2GPIO_BASE + (0x3B<<2)), 0x1);   // 32bit_sel
+	csp_out32 ((APB2GPIO_BASE + (0x1C<<2)), 0x1);   // PIPE_L01_TX_ELEC_IDLE
+	csp_out32 ((APB2GPIO_BASE + (0x29<<2)), 0x1);   // PIPE_L00_TX_ELEC_IDLE
+	csp_out32 ((APB2GPIO_BASE + (0x2F<<2)), 0x2);   // Powerdown
+	csp_out32 ((APB2GPIO_BASE + (0x3A<<2)), 0x1);   // UPHY_PHY_TX_CMN_MODE_EN
+	csp_out32 ((APB2GPIO_BASE + (0x39<<2)), 0x1);   // UPHY_PHY_RX_ELEC_IDLE_DET_EN
 	
-	Xil_Out32 ((APB2GPIO_BASE + (0x20<<2)), 0x2);   // full rt clock 125mhz
+	csp_out32 ((APB2GPIO_BASE + (0x20<<2)), 0x2);   // full rt clock 125mhz
 	
 	//apb rst =1
-	Xil_Out32 ((APB2GPIO_BASE + (0x34<<2)), 0x1);   // UPHY_APB_PRESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x34<<2)), 0x1);   // UPHY_APB_PRESET_N
 	udelay (0x50);
 	
 	//tc rst =1
-	Xil_Out32 ((APB2GPIO_BASE + (0x30<<2)), 0x1);   // TOP_CHIP_RST_B
+	csp_out32 ((APB2GPIO_BASE + (0x30<<2)), 0x1);   // TOP_CHIP_RST_B
 	udelay (0x50);
 	
 	//tap rst = 1
-	Xil_Out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x1);   // UPHY_TAP_TRST_N
+	csp_out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x1);   // UPHY_TAP_TRST_N
 	udelay (0x50);
 	
-	Xil_Out32 ((APB2JTAG_BASE + (0x0024<<4)), 0x3);   //uphy_t28_comp__TC_UPHY_CTRL_REG_15
+	csp_out32 ((APB2JTAG_BASE + (0x0024<<4)), 0x3);   //uphy_t28_comp__TC_UPHY_CTRL_REG_15
 	udelay (0x500);
 	
 	read_val = Xil_In32 ((APB2JTAG_BASE + (0x0024<<4)));
 	//xil_printf(" uphy_t28_comp__TC_UPHY_CTRL_REG_15 = 0x%X \r\n", read_val);
 	
 	//tap rst = 0
-	Xil_Out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x0);   // UPHY_TAP_TRST_N
+	csp_out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x0);   // UPHY_TAP_TRST_N
 	udelay (0x50);
 	
 	//phy reset =0
-	Xil_Out32 ((APB2GPIO_BASE + (0x38<<2)), 0x0);   // UPHY_PHY_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x38<<2)), 0x0);   // UPHY_PHY_RESET_N
 	udelay (0x500);
 	
-	Xil_Out32 ((APB2GPIO_BASE + (0x32<<2)), 0x0);   // TOP_SEL_TAP 0x for IP
+	csp_out32 ((APB2GPIO_BASE + (0x32<<2)), 0x0);   // TOP_SEL_TAP 0x for IP
 	udelay (0x500);
 	
 	//tap rst = 1
-	Xil_Out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x1);   // UPHY_TAP_TRST_N
+	csp_out32 ((APB2GPIO_BASE + (0x4C<<2)), 0x1);   // UPHY_TAP_TRST_N
 	udelay (0x50);
 	
 	//phy reset =1
-	Xil_Out32 ((APB2GPIO_BASE + (0x38<<2)), 0x1);   // UPHY_PHY_RESET_N
+	csp_out32 ((APB2GPIO_BASE + (0x38<<2)), 0x1);   // UPHY_PHY_RESET_N
 	udelay (0x500);
 	
 	
-	Xil_Out32 ((APB2JTAG_BASE + (0xC800<<4)), 0x3800);   //PHY_PMA_CMN_CTRL1  differential clock selection
+	csp_out32 ((APB2JTAG_BASE + (0xC800<<4)), 0x3800);   //PHY_PMA_CMN_CTRL1  differential clock selection
 	udelay (0x500);
 	
-	//Xil_Out32 ((APB2JTAG_BASE + (0x0022<<4)), 0x0040);   //CMN_SSM_BIAS_TMR only for Gen2
+	//csp_out32 ((APB2JTAG_BASE + (0x0022<<4)), 0x0040);   //CMN_SSM_BIAS_TMR only for Gen2
 	//udelay (0x10000);
 	
 	
@@ -153,18 +174,18 @@ void uphy_bringup(void)
 	}
 	udelay (0x50);
 	
-	Xil_Out32 ((APB2JTAG_BASE + (0xcc10<<4)), 0x0020);   //for lane 0    PHY_PMA_ISO_XCVR_CTRL
+	csp_out32 ((APB2JTAG_BASE + (0xcc10<<4)), 0x0020);   //for lane 0    PHY_PMA_ISO_XCVR_CTRL
 	udelay (0x50);
-	Xil_Out32 ((APB2JTAG_BASE + (0xcc50<<4)), 0x0020);   //for lane 1    PHY_PMA_ISO_XCVR_CTRL
+	csp_out32 ((APB2JTAG_BASE + (0xcc50<<4)), 0x0020);   //for lane 1    PHY_PMA_ISO_XCVR_CTRL
 	udelay (0x50);
 	
-	Xil_Out32 ((APB2JTAG_BASE + (0x8004<<4)), 0x1010);   //RX_PSC_A4
+	csp_out32 ((APB2JTAG_BASE + (0x8004<<4)), 0x1010);   //RX_PSC_A4
 	udelay (0x50);
-	Xil_Out32 ((APB2JTAG_BASE + (0x8080<<4)), 0x2AB3);   //RX_CDRLF_CNFG
+	csp_out32 ((APB2JTAG_BASE + (0x8080<<4)), 0x2AB3);   //RX_CDRLF_CNFG
 	udelay (0x50);
-	Xil_Out32 ((APB2JTAG_BASE + (0x819D<<4)), 0x8014);   //RX_REE_PEAK_COVRD - 0x8014
+	csp_out32 ((APB2JTAG_BASE + (0x819D<<4)), 0x8014);   //RX_REE_PEAK_COVRD - 0x8014
 	udelay (0x50);
-	Xil_Out32 ((APB2JTAG_BASE + (0x81BB<<4)), 0x4080);   //RX_REE_CTRL_DATA_MASK
+	csp_out32 ((APB2JTAG_BASE + (0x81BB<<4)), 0x4080);   //RX_REE_CTRL_DATA_MASK
 	udelay (0x50);
 	
 #ifdef DEBUG_PRINT_ENABLE
@@ -184,18 +205,18 @@ void uphy_bringup(void)
 	PRINT("\nUPHY Init Done\n\r");
 #endif
 	
-	//Xil_Out32 ((APB2GPIO_BASE + (0x43<<2)), 0x1);   // LINK_TRAINING_ENABLE
-	//Xil_Out32 ((APB2GPIO_BASE + (0x55<<2)), 0x1);   // SOFT_PIPE_RESET_N
+	//csp_out32 ((APB2GPIO_BASE + (0x43<<2)), 0x1);   // LINK_TRAINING_ENABLE
+	//csp_out32 ((APB2GPIO_BASE + (0x55<<2)), 0x1);   // SOFT_PIPE_RESET_N
 	
-	//Xil_Out32 ((APB2GPIO_BASE + (0x1C<<2)), 0x0);   // PIPE_L01_TX_ELEC_IDLE
-	//Xil_Out32 ((APB2GPIO_BASE + (0x29<<2)), 0x0);   // PIPE_L00_TX_ELEC_IDLE
+	//csp_out32 ((APB2GPIO_BASE + (0x1C<<2)), 0x0);   // PIPE_L01_TX_ELEC_IDLE
+	//csp_out32 ((APB2GPIO_BASE + (0x29<<2)), 0x0);   // PIPE_L00_TX_ELEC_IDLE
 	
 	//When ctrl in RC
-	//Xil_Out32 ((APB2GPIO_BASE + (0x56<<2)), 0x1);   // perst_o
-	//Xil_Out32 ((APB2GPIO_BASE + (0x57<<2)), 0x1);   // RP_EP_MODE_SEL
+	//csp_out32 ((APB2GPIO_BASE + (0x56<<2)), 0x1);   // perst_o
+	//csp_out32 ((APB2GPIO_BASE + (0x57<<2)), 0x1);   // RP_EP_MODE_SEL
 	
-	//Xil_Out32 ((APB2GPIO_BASE + (0x43<<2)), 0x1);   // LINK_TRAINING_ENABLE
-	//Xil_Out32 ((APB2GPIO_BASE + (0x55<<2)), 0x1);   // SOFT_PIPE_RESET_N
+	//csp_out32 ((APB2GPIO_BASE + (0x43<<2)), 0x1);   // LINK_TRAINING_ENABLE
+	//csp_out32 ((APB2GPIO_BASE + (0x55<<2)), 0x1);   // SOFT_PIPE_RESET_N
 	
 	udelay (0x50);
 	
@@ -204,22 +225,22 @@ void uphy_bringup(void)
 
 void pcie_mode_root_complex (void)
 {
-	Xil_Out32 ((APB2GPIO_BASE + (0x57<<2)), 0x1);
+	csp_out32 ((APB2GPIO_BASE + (0x57<<2)), 0x1);
 }
 
 void pcie_mode_end_point (void)
 {
-	Xil_Out32 ((APB2GPIO_BASE + (0x57<<2)), 0x0);
+	csp_out32 ((APB2GPIO_BASE + (0x57<<2)), 0x0);
 }
 
 void perstn_assert (void)
 {
-	Xil_Out32 ((APB2GPIO_BASE + (0x56<<2)), 0x0);
+	csp_out32 ((APB2GPIO_BASE + (0x56<<2)), 0x0);
 }
 
 void perstn_deassert (void)
 {
-	Xil_Out32 ((APB2GPIO_BASE + (0x56<<2)), 0x1);
+	csp_out32 ((APB2GPIO_BASE + (0x56<<2)), 0x1);
 }
 
 void wait_perstn_deassert (void)
@@ -251,7 +272,7 @@ void wait_link_training_done (void)
 		read_val = Xil_In32 (PCIE_CORE_LOCAL_MGMT_BASE + 0x00);
 		udelay (0x50);
 	}
-	//Xil_Out32 ((AXI_LED_BASE), 0x05);
+	//csp_out32 ((AXI_LED_BASE), 0x05);
 }
 
 	
@@ -617,7 +638,7 @@ struct iic_data si_iic_data[] =  {
 	{0x5E,0x00}
 };
 
-int main (){
+int hardware_main (void){
 	
 	uint32_t StatusReg;
 	int retVal, i;			
@@ -654,7 +675,7 @@ int main (){
 	
 	for (i = 0; i < size/2; i++){
                 retVal =  XIic_Send(IIC_BASE_ADDRESS, IIC_SLAVE_ADDRESS,
-                               &si_iic_data[i], sizeof(si_iic_data[i]), XIIC_STOP);
+                               (uint8_t *)&si_iic_data[i], sizeof(si_iic_data[i]), XIIC_STOP);
 		if(retVal != sizeof(si_iic_data[i])){
 			printf("Err at Addr %d Data %d count %d res %d\n", si_iic_data[i].addr, si_iic_data[i].data, i, retVal);
 		}	
